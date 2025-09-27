@@ -139,10 +139,10 @@ export const root = {
   expenses: async ({ card_id }: { card_id?: string }) => {
     try {
       if (card_id) {
-        const res = await pool.query('SELECT * FROM expenses WHERE card_id = $1', [card_id]);
+        const res = await pool.query('SELECT * FROM expenses WHERE card_id = $1 ORDER BY id DESC', [card_id]);
         return res.rows;
       } else {
-        const res = await pool.query('SELECT * FROM expenses');
+        const res = await pool.query('SELECT * FROM expenses ORDER BY id DESC');
         return res.rows;
       }
     } catch (err) {
@@ -213,10 +213,10 @@ export const root = {
   incomes: async ({ card_id }: { card_id?: string }) => {
     try {
       if (card_id) {
-        const res = await pool.query('SELECT * FROM incomes WHERE card_id = $1', [card_id]);
+        const res = await pool.query('SELECT * FROM incomes WHERE card_id = $1 ORDER BY id DESC', [card_id]);
         return res.rows;
       } else {
-        const res = await pool.query('SELECT * FROM incomes');
+        const res = await pool.query('SELECT * FROM incomes ORDER BY id DESC');
         return res.rows;
       }
     } catch (err) {
