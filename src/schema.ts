@@ -39,6 +39,7 @@ export const schema = buildSchema(`
   type ExpenseProduct {
     id: ID!
     expense_id: ID!
+    note: String
     name: String!
     quantity: Int!
     price: Float!
@@ -46,6 +47,7 @@ export const schema = buildSchema(`
 
   input ExpenseProductInput {
     name: String!
+    note: String
     quantity: Int!
     price: Float!
   }
@@ -172,6 +174,10 @@ export const root = {
   deleteExpense: async ({ id }: { id: string }) => {
     try {
       const res = await pool.query('DELETE FROM expenses WHERE id = $1 RETURNING *', [id]);
+      // Delete related items for this expense
+      if (res.rows[0]) {
+        await pool.query('DELETE FROM items WHERE expense_id = $1', [id]);
+      }
       return res.rows[0];
     } catch (err) {
       console.error("Error deleting expense:", err);
@@ -196,13 +202,13 @@ export const root = {
       return null;
     }
   },
-  addExpenseProduct: async ({ expenseId, product }: { expenseId: string; product: { name: string; quantity: number; price: number } }) => {
-    const { name, quantity, price } = product;
+  addExpenseProduct: async ({ expenseId, product }: { expenseId: string; product: { name: string; quantity: number; price: number, note?: string } }) => {
+    const { name, quantity, price, note } = product;
 
     try {
       const res = await pool.query(
-        'INSERT INTO items (expense_id, name, quantity, price) VALUES ($1, $2, $3, $4) RETURNING *',
-        [expenseId, name, quantity, price]
+        'INSERT INTO items (expense_id, name, quantity, price, note) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [expenseId, name, quantity, price, note]
       );
       return res.rows[0];
     } catch (err) {
