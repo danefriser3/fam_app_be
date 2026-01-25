@@ -9,6 +9,8 @@ yarn-error.log*
 
 # TypeScript build output
 dist/
+dist\
+dist
 build/
 *.tsbuildinfo
 
