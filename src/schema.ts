@@ -74,6 +74,12 @@ export const schema = buildSchema(`
     category: String
   }
 
+  type AldiProduct {
+    id: ID!
+    name: String!
+    price: Float!
+  }
+
   type Query {
     users: [User]
     cards: [Card]
@@ -81,6 +87,7 @@ export const schema = buildSchema(`
     hello: String
     expenseProducts(expenseId: ID!): [ExpenseProduct]
     incomes(card_id: ID): [Income]
+    aldiProducts: [AldiProduct]
   }
 
   type Mutation {
@@ -261,4 +268,13 @@ export const root = {
       return null;
     }
   },
+  aldiProducts: async () => {
+    try {
+      const res = await pool.query('SELECT * FROM products');
+      return res.rows;
+    } catch (err) {
+      console.error("Error fetching Aldi products:", err);
+      return null;
+    }
+  }
 };
