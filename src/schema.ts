@@ -78,6 +78,12 @@ export const schema = buildSchema(`
     id: ID!
     name: String!
     price: Float!
+    category: String
+    image: String
+  }
+
+  type AldiCategory {
+    category: String
   }
 
   type Query {
@@ -88,6 +94,7 @@ export const schema = buildSchema(`
     expenseProducts(expenseId: ID!): [ExpenseProduct]
     incomes(card_id: ID): [Income]
     aldiProducts: [AldiProduct]
+    aldiCategories: [AldiCategory]
   }
 
   type Mutation {
@@ -270,10 +277,19 @@ export const root = {
   },
   aldiProducts: async () => {
     try {
-      const res = await pool.query('SELECT * FROM products');
+      const res = await pool.query("SELECT id, name, REPLACE(REPLACE(REPLACE(category, '\",\"', ' > '), '{\"', ''), '\"}', '') as category, price, brand, sku, currency, source, created_at, REPLACE(REPLACE(image, '{width}', '468'),'/{slug}', '') as image FROM products order by name");
       return res.rows;
     } catch (err) {
       console.error("Error fetching Aldi products:", err);
+      return null;
+    }
+  },
+  aldiCategories: async () => {
+    try {
+      const res = await pool.query(`SELECT DISTINCT REPLACE(REPLACE(REPLACE(REPLACE(category, '","', ' > '), '{"', ''), '"}', ''), '{}', '') as category from products where category != '{}' order by category`);
+      return res.rows;
+    } catch (err) {
+      console.error("Error fetching Aldi categories:", err);
       return null;
     }
   }
