@@ -43,6 +43,8 @@ export const schema = buildSchema(`
     name: String!
     quantity: Int!
     price: Float!
+    item_type: String
+    scadenza: String
   }
 
   input ExpenseProductInput {
@@ -50,6 +52,8 @@ export const schema = buildSchema(`
     note: String
     quantity: Int!
     price: Float!
+    scadenza: String
+    item_type: String
   }
 
   input IncomeInput {
@@ -80,6 +84,8 @@ export const schema = buildSchema(`
     price: Float!
     category: String
     image: String
+    sku: String
+    description: String
   }
 
   type AldiCategory {
@@ -94,6 +100,7 @@ export const schema = buildSchema(`
     expenseProducts(expenseId: ID!): [ExpenseProduct]
     incomes(card_id: ID): [Income]
     aldiProducts: [AldiProduct]
+    aldiProduct(sku: String!): AldiProduct
     aldiCategories: [AldiCategory]
   }
 
@@ -216,13 +223,13 @@ export const root = {
       return null;
     }
   },
-  addExpenseProduct: async ({ expenseId, product }: { expenseId: string; product: { name: string; quantity: number; price: number, note?: string } }) => {
-    const { name, quantity, price, note } = product;
+  addExpenseProduct: async ({ expenseId, product }: { expenseId: string; product: { name: string; quantity: number; price: number, note?: string, item_type?: string, scadenza?: string } }) => {
+    const { name, quantity, price, note, item_type, scadenza } = product;
 
     try {
       const res = await pool.query(
-        'INSERT INTO items (expense_id, name, quantity, price, note) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [expenseId, name, quantity, price, note]
+        'INSERT INTO items (expense_id, name, quantity, price, note, item_type, scadenza) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [expenseId, name, quantity, price, note, item_type, scadenza]
       );
       return res.rows[0];
     } catch (err) {
@@ -281,6 +288,23 @@ export const root = {
       return res.rows;
     } catch (err) {
       console.error("Error fetching Aldi products:", err);
+      return null;
+    }
+  },
+  aldiProduct: async ({ sku }: { sku: string }) => {
+    try {
+      const response = await fetch(`https://api.aldi.ie/v2/products/${sku}`);
+      const { data } = await response.json();
+      return {
+        name: data.name,
+        description: data.description,
+        price: (data.price.amount / 100).toFixed(2),
+        category: data.categories.map((cat: any) => cat.name).join(' > '),
+        image: data.assets[0].url.replace('{width}', '1500').replace('/{slug}', ''),
+        sku: data.sku
+      };
+    } catch (err) {
+      console.error("Error fetching Aldi product by SKU:", err);
       return null;
     }
   },
