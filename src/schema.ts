@@ -162,10 +162,10 @@ export const root = {
   expenses: async ({ card_id }: { card_id?: string }) => {
     try {
       if (card_id) {
-        const res = await pool.query('SELECT * FROM expenses WHERE card_id = $1 ORDER BY id DESC', [card_id]);
+        const res = await pool.query('SELECT * FROM expenses WHERE card_id = $1 ORDER BY date DESC', [card_id]);
         return res.rows;
       } else {
-        const res = await pool.query('SELECT * FROM expenses ORDER BY id DESC');
+        const res = await pool.query('SELECT * FROM expenses ORDER BY date DESC');
         return res.rows;
       }
     } catch (err) {
