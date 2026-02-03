@@ -180,11 +180,14 @@ export const root = {
   addExpense: async ({ expenseInput }: { expenseInput: { card_id: string; description: string; amount: number; date: string; category?: string } }) => {
 
     const { card_id, description, amount, date, category } = expenseInput;
+    
+    // Convert timestamp to date string if needed
+    const formattedDate = isNaN(Number(date)) ? date : new Date(Number(date)).toISOString().split('T')[0];
 
     try {
       const res = await pool.query(
         'INSERT INTO expenses (card_id, description, amount, date, category) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [card_id, description, amount, date, category]
+        [card_id, description, amount, formattedDate, category]
       );
       return res.rows[0];
     } catch (err) {
