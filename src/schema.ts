@@ -180,7 +180,7 @@ export const root = {
   addExpense: async ({ expenseInput }: { expenseInput: { card_id: string; description: string; amount: number; date: string; category?: string } }) => {
 
     const { card_id, description, amount, date, category } = expenseInput;
-    
+
     // Convert timestamp to date string if needed
     const formattedDate = isNaN(Number(date)) ? date : new Date(Number(date)).toISOString().split('T')[0];
 
@@ -230,11 +230,19 @@ export const root = {
     const { name, quantity, price, note, item_type, scadenza } = product;
 
     try {
-      const res = await pool.query(
-        'INSERT INTO items (expense_id, name, quantity, price, note, item_type, scadenza) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [expenseId, name, quantity, price, note, item_type, scadenza]
-      );
-      return res.rows[0];
+      if (scadenza) {
+        const res = await pool.query(
+          'INSERT INTO items (expense_id, name, quantity, price, note, item_type, scadenza) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+          [expenseId, name, quantity, price, note, item_type, scadenza]
+        );
+        return res.rows[0];
+      } else {
+        const res = await pool.query(
+          'INSERT INTO items (expense_id, name, quantity, price, note, item_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [expenseId, name, quantity, price, note, item_type]
+        );
+        return res.rows[0];
+      }
     } catch (err) {
       console.error("Error adding expense product:", err);
       return null;
@@ -256,10 +264,10 @@ export const root = {
   },
   addIncome: async ({ incomeInput }: { incomeInput: { card_id: string; description: string; amount: number; date: string; category?: string } }) => {
     const { card_id, description, amount, date, category } = incomeInput;
-    
+
     // Convert timestamp to date string if needed
     const formattedDate = isNaN(Number(date)) ? date : new Date(Number(date)).toISOString().split('T')[0];
-    
+
     try {
       const res = await pool.query(
         'INSERT INTO incomes (card_id, description, amount, date, category) VALUES ($1, $2, $3, $4, $5) RETURNING *',
