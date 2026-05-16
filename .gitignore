@@ -16,6 +16,7 @@ build/
 
 # Environment variables
 .env
+k8s/secret.yaml
 
 # Logs
 logs/

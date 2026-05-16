@@ -47,6 +47,25 @@ export const schema = buildSchema(`
     scadenza: String
   }
 
+  type Metric {
+    id: ID!
+    key: String!
+    value: Float!
+  }
+
+  type Gas {
+    id: ID!
+    remaining_credit: Float!
+    remaining_credit_diff: Float!
+    date: String
+  }
+
+  type GasResults {
+    gas_credit: [Gas]!
+    giorni_residui: Int!
+    media_spesa: Float!
+  }
+
   input ExpenseProductInput {
     name: String!
     note: String
@@ -102,6 +121,8 @@ export const schema = buildSchema(`
     aldiProducts: [AldiProduct]
     aldiProduct(sku: String!): AldiProduct
     aldiCategories: [AldiCategory]
+    allMetrics: [Metric]
+    allGas: GasResults
   }
 
   type Mutation {
@@ -113,6 +134,8 @@ export const schema = buildSchema(`
     deleteIncome(id: ID!): Income
     deleteIncomes(ids: [ID!]!): [Income]
     updateCard(id: ID!, input: CardUpdateInput!): Card
+    addMetric(key: String!, value: Float!): Metric  
+    addGas(remaining_credit: Float!, date: String!): Gas  
   }
 
 `);
@@ -329,6 +352,91 @@ export const root = {
       return res.rows;
     } catch (err) {
       console.error("Error fetching Aldi categories:", err);
+      return null;
+    }
+  },
+  allMetrics: async () => {
+    try {
+      const res = await pool.query('SELECT * FROM metrics');
+      return res.rows;
+    }
+    catch (err) {
+      console.error("Error fetching metrics:", err);
+      return null;
+    }
+  },
+  allGas: async () => {
+    try {
+      const res = await pool.query(
+        'SELECT * FROM gas ORDER BY date ASC'
+      );
+
+      const rows = res.rows;
+
+      let giorniSpesa = 0;
+      let totaleSpesa = 0;
+      let totaleRicariche = 0;
+
+      rows.forEach(row => {
+        const diff = parseFloat(row.remaining_credit_diff);
+
+        if (diff > 0) {
+          totaleSpesa += diff;
+          giorniSpesa++;
+        } else if (diff < 0) {
+          totaleRicariche += Math.abs(diff);
+        }
+      });
+
+      const media_spesa =
+        giorniSpesa > 0
+          ? parseFloat((totaleSpesa / giorniSpesa).toFixed(2))
+          : 0;
+
+      const ultimoCredito =
+        rows.length > 0
+          ? parseFloat(rows[rows.length - 1].remaining_credit)
+          : 0;
+
+      const giorni_residui =
+        media_spesa > 0
+          ? Math.floor(ultimoCredito / media_spesa)
+          : 0;
+
+      return {
+        gas_credit: rows.map(gas => ({
+          ...gas,
+          date: new Date(gas.date).toLocaleDateString('it-IT')
+        })),
+        media_spesa,
+        giorni_residui
+      }
+    }
+    catch (err) {
+      console.error("Error fetching metrics:", err);
+      return null;
+    }
+  },
+  addGas: async ({ remaining_credit, date }: { remaining_credit: number; date: string }) => {
+    try {
+      const lastSaved = await pool.query(
+        'SELECT * FROM gas ORDER BY date DESC limit 1'
+      );
+      const lastCredit = lastSaved.rows.length > 0 ? parseFloat(lastSaved.rows[0].remaining_credit) : 0;
+      const remaining_credit_diff = (lastCredit - remaining_credit).toFixed(2);
+      const res = await pool.query('INSERT INTO gas (remaining_credit, date, remaining_credit_diff) VALUES ($1, $2, $3) RETURNING *', [remaining_credit, date, remaining_credit_diff]);
+      return res.rows[0];
+    } catch (err) {
+      console.error("Error adding gas:", err);
+      return null;
+    }
+  },
+  addMetric: async ({ key, value }: { key: string; value: number }) => {
+    try {
+      const res = await pool.query('INSERT INTO metrics (key, value) VALUES ($1, $2) RETURNING *', [key, value]);
+      return res.rows[0];
+    } catch (err) {
+      console.error("Error adding metric:", err);
       return null;
     }
   }

@@ -14,6 +14,10 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
+app.get('/health', (_, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.use('/graphql', graphqlHTTP({
   schema,
   rootValue: root,
